@@ -1,15 +1,37 @@
-import { useState } from 'react'
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  updateDoc,
+} from 'firebase/firestore'
+import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
+import db from '../firebase'
 import styles from '../styles/Home.module.css'
 
 export default function Home() {
   const [todos, setTodos] = useState([])
   const [inputText, setInputText] = useState('')
 
+  useEffect(() => {
+    const todoData = collection(db, 'todos')
+    getDocs(todoData).then((snapShot) => {
+      setTodos(snapShot.docs.map((doc) => ({ ...doc.data() })))
+    })
+  }, [])
+
   // アイテムの追加
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     const name = inputText
+
+    const docRef = await addDoc(collection(db, 'todos'), {
+      id: uuidv4(),
+      text: name,
+      completed: false,
+    })
 
     setTodos((prevTodo) => [
       ...prevTodo,
@@ -20,20 +42,24 @@ export default function Home() {
   }
 
   // 完了・未完了のToggle
-  const handleToggle = (id) => {
+  const handleToggle = async (id) => {
     const newTodos = [...todos]
     const targetTodo = newTodos.find((todo) => id === todo.id)
     targetTodo.completed = !targetTodo.completed
     setTodos(newTodos)
+
+    const todoRef = doc(db, 'todos', id)
   }
 
   // アイテムの削除
-  const handleRemove = (id) => {
+  const handleRemove = async (id) => {
     const newTodos = [...todos]
     const targetTodo = newTodos.find((todo) => id === todo.id)
     newTodos.splice(targetTodo, 1)
 
     setTodos(newTodos)
+    console.log(id)
+    await deleteDoc(doc(db, 'todos', id))
   }
 
   return (
